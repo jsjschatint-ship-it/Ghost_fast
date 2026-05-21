@@ -1,0 +1,241 @@
+# Ghost / ENScan 空配置模板
+#
+# 使用方式：
+#   1. 复制本文件为 config.yaml：
+#        Copy-Item .\config.empty.yaml .\config.yaml -Force
+#   2. 按需填写 API key、代理、启用的数据源。
+#   3. 不需要 key 的 source 可以保持 {}。
+#
+# 重要说明：
+#   - 本文件不包含任何真实凭证。
+#   - key / token / api_secret / pass 等字段只应填写在本地私有配置中。
+#   - 海外 API 建议配置 runner.proxy，否则可能超时。
+#   - runner.enabled 只控制默认启用源；Web UI 中也可以临时选择。
+
+# 全局运行配置。
+runner:
+  # 默认启用的数据源。这里放的是相对稳定、通常不需要 API key 的轻量源。
+  enabled:
+    - rdap
+    - robtex
+    - wayback
+    - internetdb
+    - threatminer
+    - ct_log
+  # 全局代理。海外源建议填写，例如：http://127.0.0.1:7890 或 socks5://127.0.0.1:10808
+  proxy: ""
+  # 自定义 User-Agent。留空使用程序默认值。
+  user_agent: ""
+  # 全局并发数。网络不稳定时建议 3~5。
+  max_concurrency: 5
+  # 全局超时时间，单位秒。
+  timeout: 60
+  # 预留扩展配置。
+  extra: {}
+
+# 核心测绘引擎配置。
+# 这些源由 engine adapter 统一接入，通常需要 API key。
+# 字段说明：
+#   enabled: 是否默认启用。
+#   key: 单个 API key。
+#   keys: 多 key 轮换列表。
+#   proxy: 单引擎代理，留空则使用 runner.proxy。
+#   timeout: 单引擎超时，0 表示使用默认。
+#   size: 单次查询返回数量，0 表示使用默认。
+engines:
+  # FOFA：资产测绘 API。key 通常配合 email 使用。
+  fofa:
+    enabled: false
+    key: ""
+    email: ""
+    keys: []
+    proxy: ""
+    timeout: 0
+    size: 0
+  # Hunter / 鹰图：资产测绘 API。
+  hunter:
+    enabled: false
+    key: ""
+    keys: []
+    proxy: ""
+    timeout: 0
+    size: 0
+  # 360 Quake：资产测绘 API。
+  quake:
+    enabled: false
+    key: ""
+    keys: []
+    proxy: ""
+    timeout: 0
+    size: 0
+  # Shodan：海外资产测绘 API，通常需要代理和 API key。
+  shodan:
+    enabled: false
+    key: ""
+    keys: []
+    proxy: ""
+    timeout: 0
+    size: 0
+  # 0.zone：资产测绘 API。
+  zerozone:
+    enabled: false
+    key: ""
+    keys: []
+    proxy: ""
+    timeout: 0
+    size: 0
+  # ZoomEye：资产测绘 API。
+  zoomeye:
+    enabled: false
+    key: ""
+    keys: []
+    proxy: ""
+    timeout: 0
+    size: 0
+
+# 普通数据源配置。
+# 规则：
+#   - `{}` 表示该 source 当前不需要额外配置，或可使用默认行为。
+#   - `key: ""` 表示该 source 需要或支持 API key，当前留空。
+#   - `user/pass`、`api_id/api_secret` 是少数 API 的特殊凭证格式。
+#   - 核心测绘引擎优先写在 engines；sources 里的同名项用于兼容或扩展。
+sources:
+  # 公开情报 / 公开 DNS / 公开归档源：多数无需 key，适合先验证能否查到数据。
+  abusech: {}
+  abuseipdb:
+    key: ""
+  app_market_search: {}
+  asn_recon: {}
+  bdziyi_fofa: {}
+  bdziyi_icp: {}
+  bdziyi_ze: {}
+  beianx: {}
+  bgp_he: {}
+  bgpview: {}
+  # 需要 API key 的外部 API 源：填 key 后才会稳定返回数据。
+  binaryedge:
+    key: ""
+  breachdirectory:
+    key: ""
+  censys:
+    key: ""
+    api_id: ""
+    api_secret: ""
+  # 证书透明日志 / 备案 / 公开查询源：通常无需 key。
+  certspotter: {}
+  chaos:
+    key: ""
+  chinaz: {}
+  ci_secret_search: {}
+  cloud_bucket: {}
+  commoncrawl: {}
+  company_structure_api: {}
+  ct_log: {}
+  cve_match: {}
+  daydaymap:
+    key: ""
+  ddosecrets: {}
+  dnsdumpster:
+    key: ""
+  dnslytics: {}
+  driftnet:
+    key: ""
+  email_regex: {}
+  emailrep: {}
+  employee_dork: {}
+  fofa: {}
+  fullhunt:
+    key: ""
+  gitee_code: {}
+  # 代码搜索类源：GitHub 相关源建议填写 GitHub token，避免限流。
+  github_code:
+    key: ""
+  github_commits:
+    key: ""
+  greynoise:
+    key: ""
+  greynoise_community: {}
+  hackertarget: {}
+  hibp:
+    key: ""
+  hudsonrock: {}
+  hunt_io:
+    key: ""
+  hunter_io:
+    key: ""
+  hunter_verify:
+    key: ""
+  intelx:
+    key: ""
+  # 不需要 key 的轻量验证源；推荐用于测试配置和网络是否正常。
+  internetdb: {}
+  ipinfo: {}
+  ipv6_pii_scan: {}
+  js_endpoints: {}
+  leakix:
+    key: ""
+  maltiverse: {}
+  netdisk_search: {}
+  netlas:
+    key: ""
+  onyphe:
+    key: ""
+  opencorporates: {}
+  otx: {}
+  path_pivot: {}
+  # CIRCL Passive DNS：支持 key 或 user/pass。
+  pdns_circl:
+    key: ""
+    user: ""
+    pass: ""
+  pdns_mnemonic: {}
+  pgpkeys: {}
+  pii_scan: {}
+  proxynova_combo: {}
+  psbdmp: {}
+  publicwww:
+    key: ""
+  pulsedive: {}
+  rapiddns: {}
+  # RDAP / Robtex / RIPEstat：常用公开反查源。
+  rdap: {}
+  ripestat: {}
+  robtex: {}
+  searchengine: {}
+  secret_scan: {}
+  securitytrails:
+    key: ""
+  # Shodan 兼容 source 入口。核心配置通常写在 engines.shodan。
+  shodan: {}
+  shodan_enrich:
+    key: ""
+  shodan_engine: {}
+  skymem: {}
+  source_map_leak: {}
+  # 供应链关联源；部分能力会复用 FOFA / Quake / GitHub 等配置。
+  supply_auto: {}
+  supply_github_org:
+    key: ""
+  supply_pivots: {}
+  supply_vendor: {}
+  threatminer: {}
+  urlscan: {}
+  validin:
+    key: ""
+  viewdns:
+    key: ""
+  virustotal:
+    key: ""
+  # Web Archive / Wayback：历史 URL / 参数采集，通常无需 key，但海外网络可能需要代理。
+  wayback: {}
+  wayback_params: {}
+  whois_reverse:
+    key: ""
+  zerozone_extra:
+    key: ""
+  zoomeye: {}
+  zoomeye_engine: {}
+
+# 其它扩展配置。
+# 一般保持空即可；具体 source 或 UI 后续扩展可能读取这里。
+extra: {}

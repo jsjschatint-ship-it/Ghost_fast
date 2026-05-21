@@ -1,0 +1,25 @@
+# local/private config
+config.yaml
+*.local.yaml
+.env
+.env.*
+
+# build outputs
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# editor/os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# runtime data
+*.db
+*.sqlite
+*.sqlite3
+logs/
+cache/

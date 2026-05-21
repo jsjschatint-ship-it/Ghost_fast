@@ -1,0 +1,130 @@
+# GitHub Actions: build cross-platform binaries on tag push, attach to release.
+#
+# Trigger: push a tag matching v*.*.* (e.g. v0.1.0 / v1.0.0-rc1).
+# Output: ghost_<os>_<arch>[.exe] + SHA256SUMS.txt attached to the GitHub Release.
+#
+# Manual dispatch is also enabled so you can test the workflow without tagging.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # required to create a Release
+
+jobs:
+  build:
+    name: build-${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            ext: .exe
+          - goos: windows
+            goarch: arm64
+            ext: .exe
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # for `git describe`
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Derive version metadata
+        id: meta
+        shell: bash
+        run: |
+          # Use the git tag if we're on one, else fall back to short-sha
+          VERSION="${GITHUB_REF#refs/tags/}"
+          if [ "$VERSION" = "$GITHUB_REF" ]; then
+            VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist
+          OUT="dist/ghost_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }}"
+          go build \
+            -trimpath \
+            -ldflags "-s -w \
+              -X main.Version=${{ steps.meta.outputs.version }} \
+              -X main.Commit=${{ steps.meta.outputs.commit }} \
+              -X main.BuildTime=${{ steps.meta.outputs.build_time }}" \
+            -o "$OUT" ./cmd/enscan
+          ls -lh "$OUT"
+
+      - name: SHA256
+        id: sha
+        shell: bash
+        run: |
+          cd dist
+          OUT="ghost_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }}"
+          sha256sum "$OUT" > "${OUT}.sha256"
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghost_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: |
+            dist/ghost_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }}
+            dist/ghost_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }}.sha256
+          if-no-files-found: error
+
+  release:
+    name: release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Combined SHA256SUMS
+        run: |
+          cd dist
+          # Drop per-file .sha256 and produce one combined SHA256SUMS.txt
+          rm -f SHA256SUMS.txt
+          sha256sum ghost_* | sort > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          ls -lh
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ghost_*
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
